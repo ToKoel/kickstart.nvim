@@ -99,7 +99,7 @@ do
   vim.g.maplocalleader = ' '
 
   -- Set to true if you have a Nerd Font installed and selected in the terminal
-  vim.g.have_nerd_font = false
+  vim.g.have_nerd_font = true
 
   -- [[ Setting options ]]
   --  See `:help vim.o`
@@ -884,6 +884,7 @@ do
   }
 end
 
+
 -- ============================================================
 -- SECTION 8: TREESITTER
 -- Parser installation, syntax highlighting, folds, indentation
@@ -897,14 +898,9 @@ do
   -- NOTE: You can also specify a branch or a specific commit
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
-  local ts = require('nvim-treesitter')
-
-  ts.setup({
-    ensure_installed = {
-      'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
-      sync_install = false,
-      auto_install = true,
-    })
+  -- Ensure basic parsers are installed
+  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown','javascript', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+  require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
   ---@param language string
@@ -927,27 +923,58 @@ do
     if has_indent_query then vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()" end
   end
 
+  local available_parsers = require('nvim-treesitter').get_available()
   vim.api.nvim_create_autocmd('FileType', {
     callback = function(args)
       local buf, filetype = args.buf, args.match
 
-      local language = vim.treesitter.language.get_lang(filetype) or filetype
+      local language = vim.treesitter.language.get_lang(filetype)
+      if not language then return end
 
+      local installed_parsers = require('nvim-treesitter').get_installed 'parsers'
 
+      if vim.tbl_contains(installed_parsers, language) then
+        -- Enable the parser if it is already installed
         treesitter_try_attach(buf, language)
+      elseif vim.tbl_contains(available_parsers, language) then
+        -- If a parser is available in `nvim-treesitter`, auto-install it and enable it after the installation is done
+        require('nvim-treesitter').install(language):await(function() treesitter_try_attach(buf, language) end)
+      else
+        -- Try to enable treesitter features in case the parser exists but is not available from `nvim-treesitter`
+        treesitter_try_attach(buf, language)
+      end
     end,
   })
 end
 
+-- Lazygit
 do
-  vim.pack.add { { src = gh 'kdheepak/lazygit.nvim' }}
+  vim.pack.add { { src = gh 'kdheepak/lazygit.nvim' } }
   vim.g.lazygit_flotaing_window_border_chars = { '╭', '─', '╮', '│', '╯', '─', '╰', '│' }
   vim.g.lazygit_floating_window_use_plenary = 0
   vim.keymap.set('n', '<leader>gg', ':LazyGit<CR>', {
     desc = 'Git: Toggle Lazygit Dashboard',
     silent = true,
-    noremap = true
+    noremap = true,
   })
+end
+
+-- oil
+do
+  vim.pack.add { { src = gh 'stevearc/oil.nvim' } }
+  require('oil').setup {
+    columns = { 'icon' },
+    keymaps = {
+      ['<C-h>'] = false,
+      ['<M-h>'] = 'actions.select_split',
+    },
+    view_options = {
+      show_hidden = true,
+    },
+  }
+
+  vim.keymap.set('n', '-', '<CMD>Oil<CR>', { desc = 'File: Open Parent Directory' })
+  vim.keymap.set('n', '<leader>-', require('oil').toggle_float)
 end
 
 -- ============================================================
