@@ -939,6 +939,17 @@ do
   })
 end
 
+do
+  vim.pack.add { { src = gh 'kdheepak/lazygit.nvim' }}
+  vim.g.lazygit_flotaing_window_border_chars = { '╭', '─', '╮', '│', '╯', '─', '╰', '│' }
+  vim.g.lazygit_floating_window_use_plenary = 0
+  vim.keymap.set('n', '<leader>gg', ':LazyGit<CR>', {
+    desc = 'Git: Toggle Lazygit Dashboard',
+    silent = true,
+    noremap = true
+  })
+end
+
 -- ============================================================
 -- SECTION 9: OPTIONAL EXAMPLES / NEXT STEPS
 -- kickstart.plugins.* examples
